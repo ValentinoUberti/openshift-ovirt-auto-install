@@ -1,8 +1,2 @@
 [ovirt_engine]
 ovengine.righini.local
-
-[bastion]
-bastion_test.lovvami.net
-
-[lb]
-lb_test.lovvami.net
