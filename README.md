@@ -14,11 +14,13 @@ The process is complete automated
 - Easy configuration
 - NFS storage creation for internal registry
 - Default cluster admin creation
+- Default infra node configurations (for registry and router pods). Application loadbalancer uses infra nodes
 
 The bastion vm services are:
 - default gateway for openshift nodes
 - pxe boot
 - dns server
+- http
 
 The loadbalancer is both api and application lb (using haproxy)
 
@@ -80,7 +82,7 @@ if cluster.proxy is not used, delete it
 
 file: groups_vars/all/ovirt.yaml
 
-Put there all the ovirt configuration
+Put there all the ovirt's configuration
 
 # Required python packages and version
 
@@ -92,7 +94,7 @@ Put there all the ovirt configuration
 
 # Tested with Fedora 31 base os and Centos 8 Minimal #
 
-Get an openshit pullSecret on  https://cloud.redhat.com/openshift/install  -> Run on Bare Metal
+Get an openshit pullSecret from  https://cloud.redhat.com/openshift/install  -> Run on Bare Metal
 
 Set the pullSecret in group_vars/vars.yaml
 
