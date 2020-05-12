@@ -5,7 +5,7 @@ The process is complete automated
 
 # This is a working project
 
-# Fetatures
+# Features
 
 - Vlan creation (for internal network)
 - Auto template creation for vm (centos 8 cloud)
