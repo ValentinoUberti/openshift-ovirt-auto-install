@@ -1,0 +1,26 @@
+ovirt:
+  username: vuberti@internal
+  ca_file: /etc/pki/ovirt-engine/ca.pem
+  password: dfadfsdfsa
+  data_center: Default
+  cluster: Default
+  host: ovirt.righini.local
+  storage:
+     interface: virtio
+     storage_domain: big
+  network:
+    external:
+       interface: virtio
+       profile: vlan19
+       network: vlan19
+    internal:
+       interface: virtio
+       profile: vlan22Test
+       network: vlan22Test
+       host_interface: eno2
+
+engine_password: sdaffdsdfdfs
+engine_fqdn: "{{ inventory_hostname }}"
+engine_user: vuberti@internal
+engine_cafile: /etc/pki/ovirt-engine/ca.pem
+ovirt_engine_ssh_user: vuberti

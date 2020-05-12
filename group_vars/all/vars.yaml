@@ -1,0 +1,49 @@
+workspace_directory:
+  base_path: /home/ansible/ocpInstallerFile
+  config_dir: config
+  
+
+networking:
+  internal_network: 172.22.0.0
+  internal_network_ip: 172.22.0.101
+  internal_network_netmask: 255.255.255.0
+  external_dns: 8.8.8.8
+  domain_name: example.com
+
+dhcp:
+  timezone: "Europe/Rome"
+  start: 172.22.0.201
+  end: 172.22.0.250
+  ntp: 204.11.201.10
+
+bastion:
+  name: bastion
+  public_ip: 172.19.0.191
+  public_netmask: 255.255.255.0
+  public_gateway: 172.19.0.1
+
+lb:
+ lb_internal_network_ip: 172.22.0.102
+ internal_interface_mac: "56:6f:3d:48:00:03"
+ name: lb
+ public_ip: 172.19.0.192
+ public_netmask: 255.255.255.0
+ public_gateway: 172.19.0.1
+
+cluster:
+  name: bjlovers
+  ocp_user: vale
+  ocp_pass: weopiurasdfòlksjdfoiuwer
+  masters: 3
+  infra: 3
+  workers: 3
+  pullSecret: ''
+  proxy:
+    httpProxy: http://<username>:<pswd>@<ip>:<port> 
+    httpsProxy: http://<username>:<pswd>@<ip>:<port> 
+    noProxy: example.com 
+  additionalTrustBundle: |
+        -----BEGIN CERTIFICATE-----
+       
+        -----END CERTIFICATE-----
+        

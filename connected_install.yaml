@@ -1,0 +1,18 @@
+---
+- import_playbook: include/000_ovirt_net_provisioning.yaml
+- import_playbook: include/001_ovirt_bastion_lb_provisioning_roles.yaml
+- import_playbook: include/01_bastion_packages.yaml
+- import_playbook: include/02_lb_packages.yaml
+- import_playbook: include/03_networking_pre_check.yaml
+- import_playbook: include/05_bastion_networking.yaml
+- import_playbook: include/10_bastion_workspace.yaml
+- import_playbook: include/11_creating_nodes_structure.yaml
+- import_playbook: include/15_bastion_services.yaml
+- import_playbook: include/25_lb_services.yaml
+- import_playbook: include/30_prepare_ocp_install.yaml
+- import_playbook: include/33_creating_igns.yaml
+- import_playbook: include/35_starting_nodes.yaml
+- import_playbook: include/38_wait_for_install.yaml
+- import_playbook: include/40_deploy_nfs_server.yaml
+- import_playbook: include/42_patch_infra.yaml
+- import_playbook: include/50_create_default_admin.yaml

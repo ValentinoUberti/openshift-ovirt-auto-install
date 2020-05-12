@@ -1,0 +1,171 @@
+---
+- name: Ovirt provisioning
+  hosts: ovirt_engine
+  become: True
+  remote_user: vuberti
+  gather_facts: false
+
+  vars:
+    engine_fqdn: ovengine.righini.local
+    engine_user:  "{{ ovirt.username }}"
+    engine_cafile: "{{ ovirt.ca_file }}"
+    engine_password: "{{ ovirt.password }}"
+
+    qcow_url: https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
+    template_cluster: "{{ ovirt.cluster }}"
+    template_name: centos8_template_test
+    template_memory: 4GiB
+    template_cpu: 2
+    template_disk_size: 10GiB
+    template_disk_storage: big
+    template_disk_bootable: true
+    template_nics: []
+    template_seal: false
+
+    debug_vm_create: yes
+    non_ocp_vm:
+      state: running
+      cluster: Default
+      template: centos8_template_test
+      memory: 2GiB
+      memory_guaranteed: 2Gib
+      nics:
+          - name: eth0
+            interface: "{{ ovirt.network.external.interface }}" 
+            profile: "{{ ovirt.network.external.profile }}" 
+            network: "{{ ovirt.network.external.network }}" 
+
+          - name: eth1
+            interface: "{{ ovirt.network.external.interface }}" 
+            profile: "{{ ovirt.network.internal.profile }}"
+            network: "{{ ovirt.network.internal.network }}"
+
+    vms:
+      - name: "{{ bastion.name }}"
+        cloud_init:
+          root_password: 'toor'
+          authorized_ssh_keys: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
+          regenerate_ssh_keys: yes
+          host_name: "{{ bastion.name }}.{{ networking.domain_name }}"
+          dns_servers: "{{ networking.external_dns }}"
+
+        cloud_init_nics:
+        - nic_name: eth0
+          nic_boot_protocol: static
+          nic_ip_address: "{{ bastion.public_ip }}"
+          nic_netmask: "{{ bastion.public_netmask }}"
+          nic_gateway: "{{ bastion.public_gateway }}"
+          nic_on_boot: true
+
+        - nic_name: eth1
+          nic_boot_protocol: static
+          nic_ip_address: "{{ networking.internal_network_ip }}"
+          nic_netmask: "{{ networking.internal_network_netmask }}"
+          nic_on_boot: true
+
+        profile: "{{ non_ocp_vm }}"
+
+      - name: "{{ lb.name }}"
+        cloud_init:
+          root_password: 'toor'
+          authorized_ssh_keys: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
+          regenerate_ssh_keys: yes
+          host_name: "{{ lb.name }}.{{ networking.domain_name }}"
+          dns_servers: "{{ networking.external_dns }}"
+
+        cloud_init_nics:
+        - nic_name: eth0
+          nic_boot_protocol: static
+          nic_ip_address: "{{ lb.public_ip }}"
+          nic_netmask: "{{ lb.public_netmask }}"
+          nic_gateway: "{{ lb.public_gateway }}"
+          nic_on_boot: true
+
+        - nic_name: eth1
+          nic_boot_protocol: static
+          nic_ip_address: "{{ lb.lb_internal_network_ip }}"
+          nic_netmask: "{{ networking.internal_network_netmask }}"
+          nic_on_boot: true
+
+        profile: "{{ non_ocp_vm }}"
+       
+  roles:
+    - ovirt.image-template
+    - ovirt.vm-infra
+
+  pre_tasks:
+
+    - name: Obtain SSO token with using username/password credentials
+      ovirt_auth:
+        url: https://{{ engine_fqdn }}/ovirt-engine/api
+        username: "{{ engine_user }}"
+        ca_file: "{{ engine_cafile }}"
+        password: "{{ engine_password }}"
+    
+    - name: Ensuring vms are not present
+      ovirt_vm:
+        auth: "{{ ovirt_auth }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ bastion.name }}"
+        - "{{ lb.name }}"
+
+    - name: Always revoke the SSO token
+      ovirt_auth:
+        state: absent
+        ovirt_auth: "{{ ovirt_auth }}"
+  
+  post_tasks:
+    - name: Adding bastion ip to bastion group
+      add_host:
+        
+        hostname: "{{ bastion.name }}.{{ networking.domain_name }}"
+        group: bastion
+    
+    - name: Adding lb ip to lb group
+      add_host:
+        hostname: "{{ lb.name }}.{{ networking.domain_name }}"
+        group: lb
+    
+    - name: Wait for ssh connection for bastion 
+      wait_for:
+        port: 22
+        host: "{{ bastion.name }}.{{ networking.domain_name }}"
+        search_regex: OpenSSH
+        delay: 20
+      connection: local
+
+    - name: Wait for ssh connection for lb
+      wait_for:
+        port: 22
+        host: "{{ lb.name }}.{{ networking.domain_name }}"
+        search_regex: OpenSSH
+        delay: 20
+      connection: local
+    
+    
+
+- name: Checking ssh access
+  hosts: bastion, lb
+  remote_user: root
+  tasks:
+    - name: Adding ansible current user to bastion and lb vm
+      user:
+        name: ansible
+        state: present
+
+    - name: "Add authorized keys"
+      authorized_key:
+        user: ansible
+        key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
+
+    - name: "Allow admin users to sudo without a password"
+      lineinfile:
+        dest: "/etc/sudoers" 
+        state: "present"
+        line: "%ansible ALL=(ALL) NOPASSWD: ALL"
+
+      
+        
+  

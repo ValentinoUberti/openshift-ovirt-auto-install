@@ -1,0 +1,119 @@
+---
+- name: Haproxy  configuration
+  hosts: lb 
+  vars:
+    internal_ip_and_mask: "{{ networking.internal_network_ip }}/{{ networking.internal_network_netmask }}"
+           
+  tasks:
+
+    - name: Calculating number of node (Lb)
+      set_fact:
+        completed_node_data: "{{ ansible_facts.ansible_local.cluster_data }}"
+          
+    - block:
+
+         - name: Checking internal network interfaces
+           fail: 
+            msg: "{{ ansible_local.internal_connection.ifname }} not found in {{ ansible_facts.interfaces }}"
+           when: ansible_local.internal_connection.ifname not in ansible_facts.interfaces
+
+
+         #https://access.redhat.com/discussions/1455033
+
+         - name: Setting static ip configuration
+           command: > 
+              nmcli con mod '{{ ansible_local.internal_connection.conname }}'
+              ipv4.address "{{ lb.lb_internal_network_ip }}/{{ internal_ip_and_mask | ipaddr('prefix') }}"
+              connection.zone internal ipv4.method manual autoconnect yes ipv4.dns {{ networking.internal_network_ip }}
+         
+         - name: Refreshing {{ ansible_local.internal_connection.conname }}
+           shell:  nmcli con down "{{ ansible_local.internal_connection.conname }}"; nmcli con up "{{ ansible_local.internal_connection.conname }}"
+       
+
+
+         - name: Adding interface {{ ansible_local.internal_connection.ifname }} to firewall internal zone  
+           firewalld:
+             zone: internal
+             interface: "{{ ansible_local.internal_connection.ifname }}"
+             permanent: yes
+             state: enabled
+
+         - name: Allow service for internal zone
+           firewalld:
+             zone: internal
+             state: enabled
+             permanent: yes
+             service: "{{ item }}"
+           loop: "{{ systemd_services }}"
+
+         - name: Allow service for public zone
+           firewalld:
+             state: enabled
+             permanent: yes
+             service: "{{ item }}"
+           loop: "{{ systemd_services }}"
+
+         - name: Allow ports for internal zone
+           firewalld:
+             zone: internal
+             state: enabled
+             permanent: yes
+             port: "{{ item }}"
+           loop: "{{ internal_zone_port }}"
+
+         - name: Allow service for public zone
+           firewalld:
+             state: enabled
+             permanent: yes
+             port: "{{ item }}"
+           loop: "{{ public_zone_port }}"
+    
+         - name: Reload firewalld service
+           service:
+             name: firewalld
+             state: restarted 
+                   
+         - name: Enabling selinux boolean for haproxy
+           seboolean:
+             name: haproxy_connect_any
+             state: yes
+             persistent: yes 
+    
+         - name: Ensuring /etc/haproxy/haproxy.cfg dosen't exists
+           file:
+             path: /etc/haproxy/haproxy.cfg
+             state: absent
+
+         - name: Firing haproxy template
+           template:
+             src: ../templates/haproxy.j2
+             dest: /etc/haproxy/haproxy.cfg
+
+         - name: Reload haproxy service
+           service:
+             name: haproxy
+             state: restarted
+             enabled: true
+
+         - name: Removing resolv.conf
+           file:
+             path: /etc/resolv.conf
+             state: absent
+
+         - name: Configure {{ ansible_local.external_connection.conname }} to use {{ networking.internal_network_ip }} as DNS server
+           command: nmcli con mod '{{ ansible_local.external_connection.conname }}' ipv4.dns "{{ networking.internal_network_ip }}" 
+
+         - name: Refreshing {{ ansible_local.external_connection.conname }}
+           shell: nmcli con down "{{ ansible_local.external_connection.conname }}"; nmcli con up "{{ ansible_local.external_connection.conname }}" 
+        
+         - name: Setting global dns
+           copy:
+             dest: /etc/resolv.conf
+             content: "nameserver {{ networking.internal_network_ip }}"
+      become: True
+
+    
+
+  
+    
+    

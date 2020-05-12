@@ -1,0 +1,21 @@
+---
+- name: Load balancer packages
+  hosts: lb 
+  become: True
+  tasks:
+     
+    - name: Installing required packages
+      package:
+        name:
+          - haproxy
+          - bind-utils
+        state: present
+
+    - name: Installing semanage (Centos 8 minimal)
+      package:
+        name:
+          - policycoreutils-python-utils
+          - firewalld
+        state: present
+      when: ansible_distribution == "CentOS" 
+    
