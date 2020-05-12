@@ -96,7 +96,7 @@ Put there all the ovirt's configuration
 
 # Tested with Fedora 31 base os and Centos 8 Minimal #
 
-Get an openshit pullSecret from  https://cloud.redhat.com/openshift/install  -> Run on Bare Metal
+Get an openshift pullSecret from  https://cloud.redhat.com/openshift/install  -> Run on Bare Metal
 
 Set the pullSecret in group_vars/vars.yaml
 
