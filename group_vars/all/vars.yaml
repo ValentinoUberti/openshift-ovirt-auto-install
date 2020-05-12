@@ -24,7 +24,6 @@ bastion:
 
 lb:
  lb_internal_network_ip: 172.22.0.102
- internal_interface_mac: "56:6f:3d:48:00:03"
  name: lb
  public_ip: 172.19.0.192
  public_netmask: 255.255.255.0
